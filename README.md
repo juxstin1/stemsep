@@ -7,8 +7,8 @@ Drop a track → pull acapellas, drums, bass & synths as DAW-ready WAVs.
 Built for AMD GPUs on Windows — ROCm-accelerated PyTorch, no CUDA required.
 
 <p>
-  <img src="docs/stemsep-progress.webp" width="49%" alt="StemSep — GPU separation in progress with live engine log" />
-  <img src="docs/stemsep-rack.webp" width="49%" alt="StemSep — 4-stem rack with synced waveforms, solo/mute per stem" />
+  <img src="docs/stemsep-progress.webp" width="56%" alt="StemSep — GPU separation in progress with live engine log" />
+  <img src="docs/stemsep-rack.webp" width="43%" alt="StemSep — 4-stem rack with synced waveforms, solo/mute per stem" />
 </p>
 
 </div>

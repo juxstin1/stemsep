@@ -2,7 +2,12 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import WaveSurfer from "wavesurfer.js";
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { save } from "@tauri-apps/plugin-dialog";
+import { startDrag } from "@crabnebula/tauri-plugin-drag";
 import { STEM_COLORS, type Stem } from "./types";
+
+// waveform chip shown under the cursor while dragging a stem out
+const DRAG_ICON =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAADimHc4AAABxElEQVR4nO3cQU7DMBCF4STqEeAeLNlwAJ/YB2DDknvQOxR1EQkFJ3UaT+d5+n8SC6RWOPM8dhIhDwMAAAAAAAAAAAAAIKpxz4e/Lh8Xu6HE8j5+VtW26kMU3i6IcW/x0+v3+cB4nkL+eXupDWGsLT6FPxbEWgjjreJT+HZBlEKYSl9gzbdRqmsxgBmzv42tOv4LgNlva1nf1Q5g9re1Vs/NJQj2CMAZATgjAGcE4IwAnJ0GsXcmSfBln+X4JrU3h3nxe/TxSXRA9A6S7gCFGXr9zvwzRAzA8wLVl8Ap+gWq62IPyB2v8d3vAbmDDjqyxJ6eYYZmw/GVJsievzFFn6FZfHzyS1B0BOCMAJwRgDMCcEYAzgjAWfgA0uKhSO1B8fCT8PWC1J+Ek+CYmr6KUL5Aa0cnoPzb0BS8w+QDUC16N5uw+iaYnMf3kA5QK7rS+Lq/DU3iHRZiD7jFsujWNwHuAaTgdznyAagW/VG63wN6RwDOCMAZATgjAGcEoBqA2j8w9W6tntO9Jz3hPsv6bi5BdEEbW3UsBkAX2CjVlROzVE/MmnFmnOOZcTPOEHI8NfEvgqjHPgoAAAAAAAAAAABg8PcLi4voGqbJfVwAAAAASUVORK5CYII=";
 
 function fmtTime(s: number): string {
   if (!isFinite(s)) return "0:00";
@@ -170,7 +175,7 @@ export function StemRack({ stems }: Props) {
           {savedFlash
             ? `✓ ${savedFlash.toUpperCase()} SAVED`
             : allReady
-              ? "SPACE = play · click wave = seek · right-click stem = save wav"
+              ? "SPACE = play · click wave = seek · right-click = save · drag label → DAW"
               : "decoding waveforms..."}
         </span>
       </div>
@@ -189,7 +194,16 @@ export function StemRack({ stems }: Props) {
               setMenu({ x: e.clientX, y: e.clientY, stem });
             }}
           >
-            <div className="stem-side" style={{ ["--stem" as string]: color }}>
+            <div
+              className="stem-side"
+              style={{ ["--stem" as string]: color }}
+              draggable
+              title="Drag out to drop this stem into rekordbox, Ableton or Explorer"
+              onDragStart={(e) => {
+                e.preventDefault();
+                startDrag({ item: [stem.path], icon: DRAG_ICON });
+              }}
+            >
               <span className="stem-label mono">{stem.name.toUpperCase()}</span>
               <div className="stem-btns">
                 <button className={`chip-btn ${isMuted ? "active-mute" : ""}`} onClick={() => toggleMute(stem.name)} title="Mute">

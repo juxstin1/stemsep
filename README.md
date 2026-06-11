@@ -27,7 +27,7 @@ Ultimate Vocal Remover and friends leave Radeon owners on CPU or flaky DirectML.
 
 Synths/pads land in **Other** on the Demucs presets. The Roformer 2-stem beats Demucs (and UVR's defaults) for clean acapellas.
 
-After a run you get a synced multi-waveform rack: space-bar transport, click-to-seek across all stems, per-stem solo/mute — audition the split before you commit it to a deck or a project. Right-click any stem to save just that piece as a WAV wherever you want it, or reveal it in Explorer.
+After a run you get a synced multi-waveform rack: space-bar transport, click-to-seek across all stems, per-stem solo/mute — audition the split before you commit it to a deck or a project. Right-click any stem to save just that piece as a WAV wherever you want it, or reveal it in Explorer — or grab a stem's label and **drag it straight out of the app** onto a rekordbox deck, an Ableton track, or an Explorer folder.
 
 ## Requirements
 

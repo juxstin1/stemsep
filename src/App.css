@@ -487,6 +487,12 @@ body {
   padding: 10px 12px;
   border-right: 1px solid var(--line);
   border-left: 3px solid var(--stem, var(--acid));
+  cursor: grab;
+}
+
+.stem-side:active {
+  cursor: grabbing;
+  background: rgba(200, 255, 61, 0.04);
 }
 
 .stem-label {

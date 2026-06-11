@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import WaveSurfer from "wavesurfer.js";
+import RegionsPlugin, { type Region } from "wavesurfer.js/dist/plugins/regions.esm.js";
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { save } from "@tauri-apps/plugin-dialog";
 import { startDrag } from "@crabnebula/tauri-plugin-drag";
@@ -31,6 +32,9 @@ export function StemRack({ stems }: Props) {
   const [solo, setSolo] = useState<Set<string>>(new Set());
   const [menu, setMenu] = useState<{ x: number; y: number; stem: Stem } | null>(null);
   const [savedFlash, setSavedFlash] = useState("");
+  // one highlighted range per stem: drag on a waveform to create it
+  const [selections, setSelections] = useState<Map<string, { start: number; end: number }>>(new Map());
+  const regionsRef = useRef<Map<string, RegionsPlugin>>(new Map());
 
   const stemKey = useMemo(() => stems.map((s) => s.path).join("|"), [stems]);
 
@@ -40,6 +44,8 @@ export function StemRack({ stems }: Props) {
     setReadyCount(0);
     setMuted(new Set());
     setSolo(new Set());
+    setSelections(new Map());
+    regionsRef.current = new Map();
     const waves = new Map<string, WaveSurfer>();
 
     stems.forEach((stem, i) => {
@@ -64,6 +70,18 @@ export function StemRack({ stems }: Props) {
         setReadyCount((c) => c + 1);
         if (i === 0) setDuration(ws.getDuration());
       });
+      // drag on the waveform = highlight a range (one per stem)
+      const regions = ws.registerPlugin(RegionsPlugin.create());
+      regions.enableDragSelection({ color: color + "2e" });
+      const syncSelection = (r: Region) => {
+        setSelections((prev) => new Map(prev).set(stem.name, { start: r.start, end: r.end }));
+      };
+      regions.on("region-created", (r: Region) => {
+        regions.getRegions().forEach((other) => other !== r && other.remove());
+        syncSelection(r);
+      });
+      regions.on("region-updated", syncSelection);
+      regionsRef.current.set(stem.name, regions);
       // any waveform click seeks every deck
       ws.on("interaction", (newTime: number) => {
         waves.forEach((other) => {
@@ -162,6 +180,36 @@ export function StemRack({ stems }: Props) {
     invoke("reveal_item", { path: stem.path });
   };
 
+  const saveSelectionAs = async (stem: Stem) => {
+    const sel = selections.get(stem.name);
+    setMenu(null);
+    if (!sel) return;
+    const base = stem.path.split(/[\\/]/).pop()!.replace(/\.wav$/i, "");
+    const tag = `${fmtTime(sel.start)}-${fmtTime(sel.end)}`.replace(/:/g, ".");
+    const dest = await save({
+      defaultPath: `${base} [${tag}].wav`,
+      filters: [{ name: "WAV audio", extensions: ["wav"] }],
+    });
+    if (!dest) return;
+    try {
+      await invoke("export_clip", { src: stem.path, start: sel.start, end: sel.end, dest });
+      setSavedFlash(`${stem.name} ${tag}`);
+    } catch (e) {
+      setSavedFlash(`ERROR: ${e}`);
+    }
+    setTimeout(() => setSavedFlash(""), 3000);
+  };
+
+  const clearSelection = (stem: Stem) => {
+    setMenu(null);
+    regionsRef.current.get(stem.name)?.clearRegions();
+    setSelections((prev) => {
+      const next = new Map(prev);
+      next.delete(stem.name);
+      return next;
+    });
+  };
+
   return (
     <div className="stem-rack">
       <div className="transport">
@@ -175,7 +223,7 @@ export function StemRack({ stems }: Props) {
           {savedFlash
             ? `✓ ${savedFlash.toUpperCase()} SAVED`
             : allReady
-              ? "SPACE = play · click wave = seek · right-click = save · drag label → DAW"
+              ? "drag wave = highlight · right-click = save · drag label → DAW"
               : "decoding waveforms..."}
         </span>
       </div>
@@ -236,7 +284,18 @@ export function StemRack({ stems }: Props) {
           onContextMenu={(e) => e.preventDefault()}
         >
           <span className="ctx-title mono">{menu.stem.name.toUpperCase()}</span>
-          <button onClick={() => saveStemAs(menu.stem)}>Save stem as WAV…</button>
+          {selections.has(menu.stem.name) && (
+            <>
+              <button className="ctx-primary" onClick={() => saveSelectionAs(menu.stem)}>
+                Save selection as WAV…{" "}
+                <span className="mono ctx-range">
+                  {fmtTime(selections.get(menu.stem.name)!.start)}–{fmtTime(selections.get(menu.stem.name)!.end)}
+                </span>
+              </button>
+              <button onClick={() => clearSelection(menu.stem)}>Clear selection</button>
+            </>
+          )}
+          <button onClick={() => saveStemAs(menu.stem)}>Save full stem as WAV…</button>
           <button onClick={() => revealStem(menu.stem)}>Reveal in Explorer</button>
         </div>
       )}

@@ -134,6 +134,49 @@ fn reveal_item(path: String) -> Result<(), String> {
 }
 
 #[tauri::command]
+async fn export_clip(
+    app: AppHandle,
+    src: String,
+    start: f64,
+    end: f64,
+    dest: String,
+) -> Result<(), String> {
+    let py_dir = python_dir(&app)?;
+    let script = py_dir.join("clip.py");
+    let output = tauri::async_runtime::spawn_blocking(move || {
+        let mut cmd = Command::new("uv");
+        cmd.arg("run")
+            .arg("--project")
+            .arg(&py_dir)
+            .arg("python")
+            .arg(&script)
+            .arg("--input")
+            .arg(&src)
+            .arg("--start")
+            .arg(start.to_string())
+            .arg("--end")
+            .arg(end.to_string())
+            .arg("--output")
+            .arg(&dest);
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            cmd.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
+        }
+        cmd.output()
+    })
+    .await
+    .map_err(|e| e.to_string())?
+    .map_err(|e| format!("Failed to run clip exporter: {e}"))?;
+
+    if output.status.success() {
+        Ok(())
+    } else {
+        Err(String::from_utf8_lossy(&output.stderr).trim().to_string())
+    }
+}
+
+#[tauri::command]
 fn copy_file(src: String, dest: String) -> Result<(), String> {
     if let Some(parent) = std::path::Path::new(&dest).parent() {
         std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
@@ -154,7 +197,8 @@ pub fn run() {
             cancel_separation,
             open_folder,
             reveal_item,
-            copy_file
+            copy_file,
+            export_clip
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -584,6 +584,16 @@ body {
   color: var(--acid);
 }
 
+.ctx-menu .ctx-primary {
+  color: var(--stem, var(--acid));
+  font-weight: 600;
+}
+
+.ctx-range {
+  font-size: 10px;
+  color: var(--ink-dim);
+}
+
 /* scrollbars */
 ::-webkit-scrollbar {
   width: 8px;

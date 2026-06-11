@@ -1,6 +1,21 @@
+<div align="center">
+
 # StemSep
 
-Desktop stem-separation deck for DJs. Drop a track, pick a mode, get DAW-ready WAV stems with per-stem waveform preview. Built for AMD GPUs on Windows (ROCm-accelerated PyTorch — no CUDA needed).
+**GPU-accelerated stem separation deck for DJs.**
+Drop a track → pull acapellas, drums, bass & synths as DAW-ready WAVs.
+Built for AMD GPUs on Windows — ROCm-accelerated PyTorch, no CUDA required.
+
+<p>
+  <img src="docs/stemsep-rack.webp" width="49%" alt="StemSep — 4-stem rack with synced waveforms, solo/mute per stem" />
+  <img src="docs/stemsep-playback.webp" width="49%" alt="StemSep — synced playback with bass muted" />
+</p>
+
+</div>
+
+## Why
+
+Ultimate Vocal Remover and friends leave Radeon owners on CPU or flaky DirectML. StemSep runs the same model families — **BS-Roformer** and **Demucs** — on AMD's official ROCm-on-Windows PyTorch wheels. A 4-stem fine-tuned Demucs pass on an RX 9070 XT takes ~75 seconds; the same job on CPU takes 12–20 minutes.
 
 ## Modes
 
@@ -11,6 +26,8 @@ Desktop stem-separation deck for DJs. Drop a track, pick a mode, get DAW-ready W
 | Producer 6-Stem | Demucs htdemucs_6s | Vocals, Drums, Bass, Guitar, Piano, Other |
 
 Synths/pads land in **Other** on the Demucs presets. The Roformer 2-stem beats Demucs (and UVR's defaults) for clean acapellas.
+
+After a run you get a synced multi-waveform rack: space-bar transport, click-to-seek across all stems, per-stem solo/mute — audition the split before you commit it to a deck or a project.
 
 ## Requirements
 
@@ -31,13 +48,11 @@ First separation per model downloads the model checkpoint (~100–700 MB) into t
 
 ## Output
 
-Stems land next to the source track:
+Stems land next to the source track — drag straight into rekordbox or Ableton:
 
 ```
 <track folder>\Stems\<track name>\<preset>\<track name> - Vocals.wav
 ```
-
-WAV output — drag straight into rekordbox or Ableton.
 
 ## Architecture
 

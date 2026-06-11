@@ -1,0 +1,26 @@
+[project]
+name = "stemsep-sidecar"
+version = "0.1.0"
+description = "Python separation engine for StemSep (audio-separator + ROCm PyTorch for AMD GPUs)"
+requires-python = "==3.12.*"
+dependencies = [
+    "audio-separator[cpu]>=0.30",
+    # AMD ROCm-for-Windows PyTorch (official wheels from repo.radeon.com).
+    # Direct URLs pin these so pip/uv can never silently swap in CPU-only torch.
+    "rocm @ https://repo.radeon.com/rocm/windows/rocm-rel-7.2.1/rocm-7.2.1.tar.gz",
+    "rocm-sdk-core @ https://repo.radeon.com/rocm/windows/rocm-rel-7.2.1/rocm_sdk_core-7.2.1-py3-none-win_amd64.whl",
+    "rocm-sdk-devel @ https://repo.radeon.com/rocm/windows/rocm-rel-7.2.1/rocm_sdk_devel-7.2.1-py3-none-win_amd64.whl",
+    "rocm-sdk-libraries-custom @ https://repo.radeon.com/rocm/windows/rocm-rel-7.2.1/rocm_sdk_libraries_custom-7.2.1-py3-none-win_amd64.whl",
+    "torch @ https://repo.radeon.com/rocm/windows/rocm-rel-7.2.1/torch-2.9.1%2Brocm7.2.1-cp312-cp312-win_amd64.whl",
+    "torchaudio @ https://repo.radeon.com/rocm/windows/rocm-rel-7.2.1/torchaudio-2.9.1%2Brocm7.2.1-cp312-cp312-win_amd64.whl",
+    "torchvision @ https://repo.radeon.com/rocm/windows/rocm-rel-7.2.1/torchvision-0.24.1%2Brocm7.2.1-cp312-cp312-win_amd64.whl",
+]
+
+[tool.uv]
+# AMD's torch wheel declares `rocm[libraries]==7.2.1`, which is not on PyPI for
+# Windows — it ships as an sdist in AMD's wheel directory. Redirect every
+# requirement on `rocm` (including torch's, extras dropped) to that sdist; the
+# rocm_sdk_* wheels above provide what the `libraries` extra would have pulled.
+override-dependencies = [
+    "rocm @ https://repo.radeon.com/rocm/windows/rocm-rel-7.2.1/rocm-7.2.1.tar.gz",
+]

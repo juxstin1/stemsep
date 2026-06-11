@@ -128,6 +128,20 @@ fn open_folder(path: String) -> Result<(), String> {
     tauri_plugin_opener::open_path(path, None::<&str>).map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+fn reveal_item(path: String) -> Result<(), String> {
+    tauri_plugin_opener::reveal_item_in_dir(path).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn copy_file(src: String, dest: String) -> Result<(), String> {
+    if let Some(parent) = std::path::Path::new(&dest).parent() {
+        std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+    }
+    std::fs::copy(&src, &dest).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -137,7 +151,9 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             start_separation,
             cancel_separation,
-            open_folder
+            open_folder,
+            reveal_item,
+            copy_file
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

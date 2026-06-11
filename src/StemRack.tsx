@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import WaveSurfer from "wavesurfer.js";
-import { convertFileSrc } from "@tauri-apps/api/core";
+import { convertFileSrc, invoke } from "@tauri-apps/api/core";
+import { save } from "@tauri-apps/plugin-dialog";
 import { STEM_COLORS, type Stem } from "./types";
 
 function fmtTime(s: number): string {
@@ -23,6 +24,8 @@ export function StemRack({ stems }: Props) {
   const [readyCount, setReadyCount] = useState(0);
   const [muted, setMuted] = useState<Set<string>>(new Set());
   const [solo, setSolo] = useState<Set<string>>(new Set());
+  const [menu, setMenu] = useState<{ x: number; y: number; stem: Stem } | null>(null);
+  const [savedFlash, setSavedFlash] = useState("");
 
   const stemKey = useMemo(() => stems.map((s) => s.path).join("|"), [stems]);
 
@@ -124,6 +127,36 @@ export function StemRack({ stems }: Props) {
     });
   };
 
+  // dismiss context menu on any click or Escape
+  useEffect(() => {
+    if (!menu) return;
+    const close = () => setMenu(null);
+    const onEsc = (e: KeyboardEvent) => e.key === "Escape" && close();
+    window.addEventListener("click", close);
+    window.addEventListener("keydown", onEsc);
+    return () => {
+      window.removeEventListener("click", close);
+      window.removeEventListener("keydown", onEsc);
+    };
+  }, [menu]);
+
+  const saveStemAs = async (stem: Stem) => {
+    setMenu(null);
+    const dest = await save({
+      defaultPath: stem.path.split(/[\\/]/).pop(),
+      filters: [{ name: "WAV audio", extensions: ["wav"] }],
+    });
+    if (!dest) return;
+    await invoke("copy_file", { src: stem.path, dest });
+    setSavedFlash(stem.name);
+    setTimeout(() => setSavedFlash(""), 2000);
+  };
+
+  const revealStem = (stem: Stem) => {
+    setMenu(null);
+    invoke("reveal_item", { path: stem.path });
+  };
+
   return (
     <div className="stem-rack">
       <div className="transport">
@@ -133,7 +166,13 @@ export function StemRack({ stems }: Props) {
         <span className="time mono">
           {fmtTime(time)} <span className="time-dim">/ {fmtTime(duration)}</span>
         </span>
-        <span className="transport-hint mono">{allReady ? "SPACE = play · click wave = seek" : "decoding waveforms..."}</span>
+        <span className="transport-hint mono">
+          {savedFlash
+            ? `✓ ${savedFlash.toUpperCase()} SAVED`
+            : allReady
+              ? "SPACE = play · click wave = seek · right-click stem = save wav"
+              : "decoding waveforms..."}
+        </span>
       </div>
 
       {stems.map((stem) => {
@@ -142,7 +181,14 @@ export function StemRack({ stems }: Props) {
         const isSolo = solo.has(stem.name);
         const silenced = isMuted || (solo.size > 0 && !isSolo);
         return (
-          <div className={`stem-row ${silenced ? "silenced" : ""}`} key={stem.name}>
+          <div
+            className={`stem-row ${silenced ? "silenced" : ""}`}
+            key={stem.name}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              setMenu({ x: e.clientX, y: e.clientY, stem });
+            }}
+          >
             <div className="stem-side" style={{ ["--stem" as string]: color }}>
               <span className="stem-label mono">{stem.name.toUpperCase()}</span>
               <div className="stem-btns">
@@ -164,6 +210,22 @@ export function StemRack({ stems }: Props) {
           </div>
         );
       })}
+
+      {menu && (
+        <div
+          className="ctx-menu"
+          style={{
+            left: Math.min(menu.x, window.innerWidth - 240),
+            top: Math.min(menu.y, window.innerHeight - 96),
+            ["--stem" as string]: STEM_COLORS[menu.stem.name] ?? "#c8ff3d",
+          }}
+          onContextMenu={(e) => e.preventDefault()}
+        >
+          <span className="ctx-title mono">{menu.stem.name.toUpperCase()}</span>
+          <button onClick={() => saveStemAs(menu.stem)}>Save stem as WAV…</button>
+          <button onClick={() => revealStem(menu.stem)}>Reveal in Explorer</button>
+        </div>
+      )}
     </div>
   );
 }
